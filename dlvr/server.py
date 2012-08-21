@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
 import smtplib
@@ -47,8 +46,8 @@ class SMTPServer(object):
         Sends a message to the SMTPServer.
         :param message: a instance of dlvr.Message
         """
-        self._connection.sendmail(message.from_email, message.recipient_list,
-            message.message)
+        self._connection.sendmail(message.from_email, message.recipients(),
+            message.message().as_string())
         pass
 
     def send_email(self, message):
