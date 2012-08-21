@@ -21,7 +21,7 @@ setup(
     url='https://github.com/bmaeser/dlvr',
     license="MIT",
     scripts=['bin/dlvr'],
-    description="a light wrapper around smtplib and email",
+    description="email sending for humans",
     long_description=open('README.rst').read(),
     packages = packages,
     include_package_data=True,
