@@ -1,12 +1,20 @@
 # -*- encoding: utf-8 -*-
 
+import os
+import mimetypes
+
+from email import encoders
 from email.utils import formataddr
-from email.mime.text import MIMEText
+from email.mime.audio import MIMEAudio
+from email.mime.base import MIMEBase
+from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 class Message(object):
 
-    def __init__(self, from_email, to, subject, text_message='', cc=[], bcc=[]):
+    def __init__(self, from_email, to, subject, text_message=None, cc=None,
+        bcc=None, attachments=None, alternatives=None):
         """
         Constructor for a Email Message
 
@@ -24,9 +32,12 @@ class Message(object):
         self.from_email = from_email
         self.to = to
         self.subject = subject
-        self.text_message = text_message
-        self.cc = cc
-        self.bcc = bcc
+
+        self.text_message = text_message or ''
+        self.cc = cc or []
+        self.bcc = bcc or []
+        self.alternatives = alternatives or []
+        self.attachments = attachments or []
 
 
     def recipients(self):
@@ -41,14 +52,70 @@ class Message(object):
         Returns a email.message.Message / MIME version of this Message.
         """
 
-        msg = MIMEText(self.text_message)
+        ## we have no attachments or alternative content --> simple text mail
+        if not self.alternatives and not self.attachments:
+            msg = MIMEText(self.text_message)
+
+        ## we have attachments or alternative content
+        else:
+            msg = MIMEMultipart()
+            msg.attach(MIMEText(self.text_message))
+
+            ## for attachmen in attachments create submessage and append
+            ## same for alternatives
+
+        if self.attachments:
+            for path, mtype in self.attachments:
+                if not mtype: ## try to guess
+                    t, enc = mimetypes.guess_type(path)
+                    mtype = t
+                if not mtype: ## default mimetype
+                    mtype = 'application/octet-stream'
+
+                content = open(path, 'rb').read()
+                maintype, subtype = mtype.split('/', 1)
+                filename = os.path.basename(path)
+
+                if maintype == 'text':
+                    inner = MIMEText(content, _subtype=subtype)
+                elif maintype == 'image':
+                    inner = MIMEImage(content, _subtype=subtype)
+                elif maintype == 'audio':
+                    inner = MIMEAudio(content, _subtype=subtype)
+                else:
+                    inner = MIMEBase(maintype, subtype)
+                    inner.set_payload(content)
+                    encoders.encode_base64(inner)
+                inner.add_header('Content-Disposition', 'attachment',
+                    filename=filename)
+                msg.attach(inner)
+
+
+        ## message headers
         msg['From'] = self.from_email
         msg['To'] = ', '.join(str(i) for i in self.to)
         msg['Subject'] = self.subject
 
         return msg
 
+    def attach_alternative(self, content, mimetype):
+        """
+        attach an alternative content representation
 
+        :param content: content to attach
+        :param mimetype: the mimetype of given content
+        """
+        self.alternatives.append((content, mimetype))
+
+    def attach_file(self, filepath, mimetype=None):
+        """
+        attach a file from the filesystem as a attachment
+
+        :param filepath: (required) the location of your file on your filesystem
+        :param mimetype: (optional) the mimetype of given attachment
+            if no mimetype is given the type will be guessed from the filename
+        """
+        self.attachments.append((filepath, mimetype))
 
 
 
