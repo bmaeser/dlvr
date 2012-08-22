@@ -56,14 +56,22 @@ class Message(object):
         ## we have no attachments or alternative content --> simple text mail
         if not self.alternatives and not self.attachments:
             msg = MIMEText(self.text_message, 'plain', self.charset)
+        ## we need a multipart/mixed container
+        elif self.alternatives:
+            msg = MIMEMultipart('mixed')
+            container = MIMEMultipart('alternative')
 
-        ## we have attachments or alternative content
+            txtmsg = MIMEText(self.text_message, 'plain', self.charset)
+            container.attach(txtmsg)
+            for content, mtype in self.alternatives:
+                maintype, subtype = mtype.split('/', 1)
+                alternatemsg = MIMEText(content, subtype)
+                container.attach(alternatemsg)
+            msg.attach(container)
         else:
-            msg = MIMEMultipart()
-            msg.attach(MIMEText(self.text_message, 'plain', self.charset))
-
-            ## for attachmen in attachments create submessage and append
-            ## same for alternatives
+            msg = MIMEMultipart('mixed')
+            txtmsg = MIMEText(self.text_message, 'plain', self.charset)
+            msg.attach(txtmsg)
 
         if self.attachments:
             for path, mtype in self.attachments:
@@ -91,20 +99,23 @@ class Message(object):
                     filename=filename)
                 msg.attach(inner)
 
-
         ## message headers
         msg['From'] = self.from_email
         msg['To'] = ', '.join(str(i) for i in self.to)
         msg['Subject'] = self.subject
+        if self.cc:
+            msg['Cc'] = ', '.join(str(i) for i in self.cc)
+        if self.bcc:
+            msg['Bcc'] = ', '.join(str(i) for i in self.bcc)
 
         return msg
 
-    def attach_alternative(self, content, mimetype):
+    def attach_alternative(self, content, mimetype='text/html'):
         """
         attach an alternative content representation
 
         :param content: content to attach
-        :param mimetype: the mimetype of given content
+        :param mimetype: the mimetype of given content, defaults to 'text/html'
         """
         self.alternatives.append((content, mimetype))
 
@@ -118,8 +129,3 @@ class Message(object):
         """
         self.attachments.append((filepath, mimetype))
 
-
-
-## todo:
-# not ugly from/to/cc/bcc addresses: 'my name <me@asdf.com>'
-# umlaute in text und subject
