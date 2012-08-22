@@ -14,7 +14,7 @@ from email.mime.text import MIMEText
 class Message(object):
 
     def __init__(self, from_email, to, subject, text_message=None, cc=None,
-        bcc=None, attachments=None, alternatives=None):
+        bcc=None, attachments=None, alternatives=None, charset=None):
         """
         Constructor for a Email Message
 
@@ -34,6 +34,7 @@ class Message(object):
         self.subject = subject
 
         self.text_message = text_message or ''
+        self.charset = charset or 'utf-8'
         self.cc = cc or []
         self.bcc = bcc or []
         self.alternatives = alternatives or []
@@ -54,12 +55,12 @@ class Message(object):
 
         ## we have no attachments or alternative content --> simple text mail
         if not self.alternatives and not self.attachments:
-            msg = MIMEText(self.text_message)
+            msg = MIMEText(self.text_message, 'plain', self.charset)
 
         ## we have attachments or alternative content
         else:
             msg = MIMEMultipart()
-            msg.attach(MIMEText(self.text_message))
+            msg.attach(MIMEText(self.text_message, 'plain', self.charset))
 
             ## for attachmen in attachments create submessage and append
             ## same for alternatives
@@ -121,4 +122,4 @@ class Message(object):
 
 ## todo:
 # not ugly from/to/cc/bcc addresses: 'my name <me@asdf.com>'
-# 
+# umlaute in text und subject
