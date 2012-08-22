@@ -28,8 +28,7 @@ setup(
     install_requires = install_requires,
     zip_safe=False,
     classifiers=(
-        'Development Status :: 2 - Pre-Alpha',
-        ## 'Development Status :: 5 - Production/Stable',
+        'Development Status :: 5 - Production/Stable',
         'Topic :: Utilities',
         'Topic :: Communications :: Email',
         'Topic :: Communications :: Email :: Email Clients (MUA)',
