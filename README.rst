@@ -39,8 +39,10 @@ send the email: ::
 
 
 
-Full example ::
+Full example 
 ------------------
+
+::
 
 	from dlvr import SMTPServer, Message
 
