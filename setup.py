@@ -20,7 +20,7 @@ setup(
     author_email='bernhard.maeser@gmail.com',
     url='https://github.com/bmaeser/dlvr',
     license="MIT",
-    scripts=['bin/dlvr'],
+    #scripts=['bin/dlvr'],
     description="email sending for humans",
     long_description=open('README.rst').read(),
     packages = packages,
