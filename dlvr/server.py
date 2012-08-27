@@ -5,11 +5,11 @@ import smtplib
 
 class SMTPServer(object):
 
-    def __init__(self, host="localhost", port="25", auth_user=None,
+    def __init__(self, host=None, port=None, auth_user=None,
         auth_pass=None,	tls=False):
 
-        self.host = host
-        self.port = port
+        self.host = host or 'localhost'
+        self.port = port or '25'
         self.auth_user = auth_user
         self.auth_pass = auth_pass
         self.tls = tls
