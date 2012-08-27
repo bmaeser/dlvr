@@ -1,0 +1,152 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import os
+import sys
+import ConfigParser
+import argparse
+
+from dlvr import __version__ as version
+from dlvr import SMTPServer, Message
+
+
+def get_or_none(config, section, key):
+    if config.has_option(section, key):
+        return config.get(section, key)
+    else:
+        return None
+
+def cli():
+
+    # Parse commandline arguments
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='A fast way to send emails from your shell.',
+        epilog='''\
+
+
+---------------------------------------------------------
+
+Example:
+this uses the template home from configfile /path/to/configfile
+and sends 2 attachments
+
+%(prog)s home -c /path/to/configfile -a /path/to/file1 -a /path/to/file2
+            '''
+        )
+
+    parser.add_argument(
+        'template',
+        action='store',
+        help='the template to use')
+
+    parser.add_argument(
+        '-c',
+        action='store',
+        dest='configfile',
+        help='path to the config file')
+
+    parser.add_argument(
+        '-a',
+        dest='attachment',
+        default=[],
+        action='append',
+        help='attachments to send')
+
+    parser.add_argument(
+        '-v', '--version',
+        action='version',
+        version='%(prog)s ' + version)
+
+    args = parser.parse_args()
+
+    ## read the configfile
+
+    conf = ConfigParser.ConfigParser()
+
+    if (args.configfile):
+        validconfig = conf.read(args.configfile)
+    else:
+        validconfig = conf.read(['/etc/deliver.ini', os.path.expanduser('~/.deliver.ini')]);
+
+    ## we return a non 0 exitcode
+    ## 1-2 are reserved see
+    ## http://tldp.org/LDP/abs/html/exitcodes.html
+    if not validconfig:
+        print "Failed to read configfile. Try -c parameter"
+        return 3
+
+    template = args.template
+    attachments = args.attachment
+
+    if conf.has_section(template):
+        try:
+            ## read configuration
+            ## host, port, from_mail are required
+
+            host = conf.get(template, 'host')
+            port = conf.get(template, 'port')
+            from_mail = conf.get(template, 'from_mail')
+
+            auth_user = get_or_none(conf, template, 'auth_user')
+            auth_pass = get_or_none(conf, template, 'auth_pass')
+            tls = get_or_none(conf, template, 'tls')
+            
+            ## tls is boolean, may not be None
+            if not tls:
+                tls = False
+
+            to = get_or_none(conf, template, 'to')
+            subject = get_or_none(conf, template, 'subject')
+            cc = get_or_none(conf, template, 'cc')
+            bcc = get_or_none(conf, template, 'bcc')
+
+        except:
+            print 'Error while reading the configfile, please check your configuration file'
+            return 3
+
+    else:
+        print 'Could not find template ' + template + '. abort'
+        return 3
+
+
+
+
+    ## read data (text-body from pipe)
+    print "Please enter your emails message-body and continue with CTRL+D: "
+    data = sys.stdin.read()
+
+    if not data:
+        data = '(empty message-body)'
+
+    if not subject:
+        sys.stdin = open('/dev/tty')
+        subject=raw_input("Please enter your email's subject: ")
+
+    if not to:
+        sys.stdin = open('/dev/tty')
+        to=raw_input("Please enter your email's recipient: ")
+
+    ## rearange strings as lists
+
+    to = to.split(',')
+
+    if cc:
+        cc = cc.split(',')
+
+    if bcc:
+        bcc = bcc.split(',')
+
+    s = SMTPServer(host, port, auth_user, auth_pass, tls)
+    m = Message(from_mail, to, subject, data, cc=cc, bcc=bcc)
+
+    if attachments:
+        for a in attachments:
+            m.attach_file(a)
+
+    s.send_email(m)
+
+
+if __name__ == '__main__':
+    sys.exit(cli())
